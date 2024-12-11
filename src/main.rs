@@ -1,5 +1,15 @@
 use std::error::Error;
 use csv::ReaderBuilder;
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct Record{
+	product: String,
+	sku: String,
+	cost: f64, 
+	lead_time: u32,
+	status: String, 
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Specify the dataset file path
