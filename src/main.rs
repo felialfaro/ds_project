@@ -4,11 +4,21 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 struct Record{
-	product: String,
-	sku: String,
-	cost: f64, 
-	lead_time: u32,
-	status: String, 
+    #[serde(rename = "Product type")]
+    product: String,
+    #[serde(rename = "SKU")]
+    sku: String,
+    #[serde(rename = "Price")]
+    cost: f64,
+    #[serde(rename = "Lead time")]
+    lead_time: u32,
+    #[serde(rename = "Availability")]
+    status: String,
+}
+
+fn calculate_average_cost(records: &[Record]) -> f64 {
+	let total_cost: f64 = records.iter().map(|r| r.cost).sum();
+	total_cost / records.len() as f64
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -19,12 +29,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         .has_headers(true) 
         .from_path(file_path)?;
 
-    // Read and print each record
+    let mut records: Vec<Record> = Vec::new();
+    for result in rdr.deserialize() {
+	let record: Record = result?;
+	records.push(record);
+    }   
+
     println!("Dataset Records:");
     for result in rdr.records() {
         let record = result?;
         println!("{:?}", record);
     }
+    let avg_cost = calculate_average_cost(&records);
+    println!("Average Cost: {:.2}", avg_cost);
 
     Ok(())
 }
