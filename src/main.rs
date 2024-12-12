@@ -34,7 +34,7 @@ struct Record {
     status: String,
 }
 
-    fn calculate_revenue_analysis(records: &[Record]) {
+    fn calculate_revenue_analysis(records: &[Record]) -> HashMap<String, f64> {
     let mut product_revenues: HashMap<String, f64> = HashMap::new();
     for record in records {
         let revenue = record.price * record.quantity_sold as f64;
@@ -48,6 +48,8 @@ struct Record {
     for (product, revenue) in sorted_products.iter().take(5) {
         println!("{}: ${:.2}", product, revenue);
     }
+
+    product_revenues
 }
 
 fn analyze_supply_chain_efficiency(records: &[Record]) {
@@ -361,7 +363,7 @@ mod tests {
     use super::*;
     
     #[test]
-    fn test_calculate_revenue_analysis() {
+fn test_calculate_revenue_analysis() {
     let records = vec![
         Record {
             product: "Product A".to_string(),
@@ -391,8 +393,7 @@ mod tests {
         },
     ];
 
-    let mut product_revenues: HashMap<String, f64> = HashMap::new();
-    calculate_revenue_analysis(&records);
+    let product_revenues = calculate_revenue_analysis(&records);
 
     assert_eq!(product_revenues.get("Product A"), Some(&50.0));
     assert_eq!(product_revenues.get("Product B"), Some(&40.0));
@@ -410,18 +411,30 @@ mod tests {
     fn test_detect_outliers() {
     let records = vec![
         Record {
-            product: "Product A".to_string(),
-            sku: "SKU001".to_string(),
-            cost: 100.0,
-            lead_time: 10,
-            status: "Available".to_string(),
-        },
+        product: "Product A".to_string(),
+        sku: "SKU001".to_string(),
+        price: 10.0,
+        quantity_sold: 5,
+        cost: 100.0,
+        lead_time: 10,
+        shipping_time: 5,
+        shipping_cost: 20.0,
+        location: "New York".to_string(),
+        demographic: "Adults".to_string(),
+        status: "Available".to_string(),
+    },
         Record {
-            product: "Product B".to_string(),
+	    product: "Product B".to_string(),
             sku: "SKU002".to_string(),
-            cost: 1000.0,
-            lead_time: 20,
-            status: "Available".to_string(),
+            price: 20.0,
+            quantity_sold: 2,
+            cost: 200.0,
+            lead_time: 15,
+            shipping_time: 7,
+            shipping_cost: 30.0,
+            location: "Los Angeles".to_string(),
+            demographic: "Teens".to_string(),
+            status: "Unavailable".to_string(),
         },
     ];
 
@@ -433,11 +446,17 @@ mod tests {
     fn test_feature_engineering() {
     let records = vec![
         Record {
-            product: "Product A".to_string(),
-            sku: "SKU001".to_string(),
-            cost: 100.0,
-            lead_time: 10,
-            status: "Available".to_string(),
+        product: "Product A".to_string(),
+        sku: "SKU001".to_string(),
+        price: 10.0,
+        quantity_sold: 5,
+        cost: 100.0,
+        lead_time: 10,
+        shipping_time: 5,
+        shipping_cost: 20.0,
+        location: "New York".to_string(),
+        demographic: "Adults".to_string(),
+        status: "Available".to_string(),
         },
     ];
 
@@ -450,18 +469,30 @@ mod tests {
     fn test_calculate_average_cost() {
         let records = vec![
             Record {
-                product: "Product A".to_string(),
-                sku: "SKU001".to_string(),
-                cost: 100.0,
-                lead_time: 10,
-                status: "Available".to_string(),
+        product: "Product A".to_string(),
+        sku: "SKU001".to_string(),
+        price: 10.0,
+        quantity_sold: 5,
+        cost: 100.0,
+        lead_time: 10,
+        shipping_time: 5,
+        shipping_cost: 20.0,
+        location: "New York".to_string(),
+        demographic: "Adults".to_string(),
+        status: "Available".to_string(),
             },
             Record {
-                product: "Product B".to_string(),
-                sku: "SKU002".to_string(),
-                cost: 200.0,
-                lead_time: 15,
-                status: "Unavailable".to_string(),
+        product: "Product B".to_string(),
+        sku: "SKU002".to_string(),
+        price: 20.0,
+        quantity_sold: 2,
+        cost: 200.0,
+        lead_time: 15,
+        shipping_time: 7,
+        shipping_cost: 30.0,
+        location: "Los Angeles".to_string(),
+        demographic: "Teens".to_string(),
+        status: "Unavailable".to_string(),
             },
         ];
 
@@ -473,18 +504,30 @@ mod tests {
     fn test_perform_clustering() {
         let records = vec![
             Record {
-                product: "Product A".to_string(),
-                sku: "SKU001".to_string(),
-                cost: 100.0,
-                lead_time: 10,
-                status: "Available".to_string(),
+        product: "Product A".to_string(),
+        sku: "SKU001".to_string(),
+        price: 10.0,
+        quantity_sold: 5,
+        cost: 100.0,
+        lead_time: 10,
+        shipping_time: 5,
+        shipping_cost: 20.0,
+        location: "New York".to_string(),
+        demographic: "Adults".to_string(),
+        status: "Available".to_string(),
             },
             Record {
-                product: "Product B".to_string(),
-                sku: "SKU002".to_string(),
-                cost: 200.0,
-                lead_time: 20,
-                status: "Unavailable".to_string(),
+        product: "Product B".to_string(),
+        sku: "SKU002".to_string(),
+        price: 20.0,
+        quantity_sold: 2,
+        cost: 200.0,
+        lead_time: 15,
+        shipping_time: 7,
+        shipping_cost: 30.0,
+        location: "Los Angeles".to_string(),
+        demographic: "Teens".to_string(),
+        status: "Unavailable".to_string(),
             },
         ];
 
@@ -496,18 +539,30 @@ mod tests {
     fn test_perform_regression() {
         let records = vec![
             Record {
-                product: "Product A".to_string(),
-                sku: "SKU001".to_string(),
-                cost: 100.0,
-                lead_time: 10,
-                status: "Available".to_string(),
+        product: "Product A".to_string(),
+        sku: "SKU001".to_string(),
+        price: 10.0,
+        quantity_sold: 5,
+        cost: 100.0,
+        lead_time: 10,
+        shipping_time: 5,
+        shipping_cost: 20.0,
+        location: "New York".to_string(),
+        demographic: "Adults".to_string(),
+        status: "Available".to_string(),
             },
             Record {
-                product: "Product B".to_string(),
-                sku: "SKU002".to_string(),
-                cost: 200.0,
-                lead_time: 20,
-                status: "Unavailable".to_string(),
+        product: "Product B".to_string(),
+        sku: "SKU002".to_string(),
+        price: 20.0,
+        quantity_sold: 2,
+        cost: 200.0,
+        lead_time: 15,
+        shipping_time: 7,
+        shipping_cost: 30.0,
+        location: "Los Angeles".to_string(),
+        demographic: "Teens".to_string(),
+        status: "Unavailable".to_string(),
             },
         ];
 
