@@ -141,19 +141,25 @@ fn feature_engineering(records: &[Record]) -> Vec<HashMap<String, f64>> {
         .collect()
 }
 
-fn detect_outliers(records: &[Record]) {
+fn detect_outliers(records: &[Record]) -> Result<(), Box<dyn Error>> {
     let costs: Vec<f64> = records.iter().map(|r| r.cost).collect();
     let mean = costs.iter().sum::<f64>() / costs.len() as f64;
     let std_dev = (costs.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / costs.len() as f64).sqrt();
 
+    let mut wtr = Writer::from_writer(File::create("outliers.csv")?);
+    wtr.write_record(&["Record ID", "Cost", "Z-Score"])?;
+
     for (i, cost) in costs.iter().enumerate() {
         let z_score = (cost - mean) / std_dev;
         if z_score.abs() > 3.0 {
-            println!("Record {} is an outlier with Z-score: {:.2}", i, z_score);
+            wtr.write_record(&[i.to_string(), cost.to_string(), z_score.to_string()])?;
         }
     }
-}
+    wtr.flush()?;
+    println!("Outliers detected and saved to outliers.csv");
 
+    Ok(())
+}
 fn visualize_data_with_trend(records: &[Record]) -> Result<(), Box<dyn Error>> {
     let root = BitMapBackend::new("scatter_plot_with_trend.png", (640, 480)).into_drawing_area();
     root.fill(&WHITE)?;
@@ -221,10 +227,10 @@ fn perform_clustering(records: &[Record], num_clusters: usize) -> Result<(), Box
     // Perform K-Means clustering
     let kmeans = KMeans::params(num_clusters).fit(&dataset)?;
 
-    println!("Cluster assignments:");
-    for (i, cluster) in kmeans.predict(dataset.records()).iter().enumerate() {
-        println!("Record {}: Cluster {}", i, cluster);
-    }
+    //println!("Cluster assignments:");
+    //for (i, cluster) in kmeans.predict(dataset.records()).iter().enumerate() {
+    //    println!("Record {}: Cluster {}", i, cluster);
+    //}
 
     // Write clustering results to a CSV file
     let mut wtr = Writer::from_writer(File::create("clustering_results.csv")?);
@@ -268,10 +274,15 @@ fn perform_regression(records: &[Record]) -> Result<(), Box<dyn Error>> {
     // Predict lead times for the dataset
     let predictions = model.predict(dataset.records());
 
-    println!("Predicted Lead Times:");
+    // Save predictions to CSV
+    let mut wtr = Writer::from_writer(File::create("regression_predictions.csv")?);
+    wtr.write_record(&["Record ID", "Predicted Lead Time"])?;
+
     for (i, pred) in predictions.iter().enumerate() {
-        println!("Record {}: Predicted Lead Time = {:.2}", i, pred);
+        wtr.write_record(&[i.to_string(), pred.to_string()])?;
     }
+    wtr.flush()?;
+    println!("Predicted lead times saved to regression_predictions.csv");
 
     Ok(())
 }
@@ -311,7 +322,20 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Feature engineering
     let engineered_features = feature_engineering(&records);
-    println!("Engineering Features: {:?}", engineered_features);
+
+    //Save engineered features to CSV
+    let mut wtr = Writer::from_writer(File::create("engineered_features.csv")?);
+    wtr.write_record(&["Cost", "Lead Time", "Cost per Lead Time"])?;
+
+    for feature in &engineered_features {
+	wtr.write_record(&[
+	    feature["cost"].to_string(),
+            feature["lead_time"].to_string(),
+            feature["cost_per_lead_time"].to_string(),
+        ])?;
+    }
+    wtr.flush()?;
+    println!("Engineered features saved to engineered_features.csv");
 
     //Outlier detection
     detect_outliers(&records);
@@ -321,7 +345,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // Calculate and print average cost
     let avg_cost = calculate_average_cost(&records);
-    println!("Average Cost: {:.2}", avg_cost);
+    println!("Average Cost per product: {:.2}", avg_cost);
 
     // Perform clustering
     perform_clustering(&records, 3)?;
