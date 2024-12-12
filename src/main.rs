@@ -14,13 +14,101 @@ struct Record {
     product: String,
     #[serde(rename = "SKU")]
     sku: String,
+    #[serde(rename = "Price")]
+    price: f64,
+    #[serde(rename = "Number of products sold")]
+    quantity_sold: u32,
     #[serde(rename = "Costs")]
     cost: f64,
     #[serde(rename = "Manufacturing lead time")]
     lead_time: u32,
+    #[serde(rename = "Shipping times")]
+    shipping_time: u32,
+    #[serde(rename = "Shipping costs")]
+    shipping_cost: f64,
+    #[serde(rename = "Location")]
+    location: String,
+    #[serde(rename = "Customer demographics")]
+    demographic: String,
     #[serde(rename = "Availability")]
     status: String,
 }
+
+    fn calculate_revenue_analysis(records: &[Record]) {
+    let mut product_revenues: HashMap<String, f64> = HashMap::new();
+    for record in records {
+        let revenue = record.price * record.quantity_sold as f64;
+        *product_revenues.entry(record.product.clone()).or_insert(0.0) += revenue;
+    }
+
+    let mut sorted_products: Vec<_> = product_revenues.iter().collect();
+    sorted_products.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
+
+    println!("Most Profitable Products:");
+    for (product, revenue) in sorted_products.iter().take(5) {
+        println!("{}: ${:.2}", product, revenue);
+    }
+}
+
+fn analyze_supply_chain_efficiency(records: &[Record]) {
+    let shipping_times: Vec<f64> = records.iter().map(|r| r.shipping_time as f64).collect();
+    let shipping_costs: Vec<f64> = records.iter().map(|r| r.shipping_cost).collect();
+
+    let correlation = calculate_correlation(&shipping_times, &shipping_costs);
+    println!("Correlation between Shipping Time and Shipping Cost: {:.2}", correlation);
+
+    let bottlenecks: Vec<_> = records
+        .iter()
+        .filter(|r| r.lead_time > 30 && r.status == "Available")
+        .collect();
+
+    println!("Supply Chain Bottlenecks:");
+    for record in bottlenecks {
+        println!("Product: {}, Lead Time: {} days", record.product, record.lead_time);
+    }
+}
+
+fn identify_optimization_opportunities(records: &[Record]) {
+    let mut carrier_costs: HashMap<String, f64> = HashMap::new();
+    for record in records {
+        *carrier_costs.entry(record.location.clone()).or_insert(0.0) += record.shipping_cost;
+    }
+
+    let mut sorted_carriers: Vec<_> = carrier_costs.iter().collect();
+    sorted_carriers.sort_by(|a, b| b.1.partial_cmp(a.1).unwrap());
+
+    println!("High-Cost Shipping Locations:");
+    for (carrier, cost) in sorted_carriers.iter().take(5) {
+        println!("{}: ${:.2}", carrier, cost);
+    }
+}
+
+fn perform_predictive_modeling(records: &[Record]) -> Result<(), Box<dyn Error>> {
+    // Predict Revenue based on Price and Quantity Sold
+    let features: ndarray::Array2<f64> = ndarray::Array2::from_shape_vec(
+        (records.len(), 2),
+        records
+            .iter()
+            .flat_map(|r| vec![r.price, r.quantity_sold as f64])
+            .collect(),
+    )?;
+    let targets: ndarray::Array1<f64> = ndarray::Array1::from(
+        records
+            .iter()
+            .map(|r| r.price * r.quantity_sold as f64)
+            .collect::<Vec<f64>>(),
+    );
+
+    let dataset = Dataset::new(features, targets);
+
+    let model = LinearRegression::default().fit(&dataset)?;
+
+    println!("Revenue Prediction Model Coefficients: {:?}", model.params());
+    println!("Revenue Prediction Model Intercept: {:.2}", model.intercept());
+
+    Ok(())
+}
+
 
 fn calculate_correlation(x: &[f64], y: &[f64]) -> f64 {
     let n = x.len() as f64;
@@ -66,18 +154,18 @@ fn detect_outliers(records: &[Record]) {
     }
 }
 
-fn visualize_data(records: &[Record]) -> Result<(), Box<dyn Error>> {
-    let root = BitMapBackend::new("scatter_plot.png", (640, 480)).into_drawing_area();
+fn visualize_data_with_trend(records: &[Record]) -> Result<(), Box<dyn Error>> {
+    let root = BitMapBackend::new("scatter_plot_with_trend.png", (640, 480)).into_drawing_area();
     root.fill(&WHITE)?;
 
     let mut chart = ChartBuilder::on(&root)
-        .caption("Cost vs Lead Time", ("sans-serif", 20).into_font())
+        .caption("Cost vs Lead Time with Trend Line", ("sans-serif", 20).into_font())
         .margin(10)
         .x_label_area_size(30)
         .y_label_area_size(30)
         .build_cartesian_2d(
-            0f64..records.iter().map(|r| r.cost).fold(0. / 0., f64::max), // Max cost
-            0f64..records.iter().map(|r| r.lead_time as f64).fold(0. / 0., f64::max), // Max lead time
+            0f64..records.iter().map(|r| r.cost).fold(0. / 0., f64::max),
+            0f64..records.iter().map(|r| r.lead_time as f64).fold(0. / 0., f64::max),
         )?;
 
     chart.configure_mesh().draw()?;
@@ -87,6 +175,7 @@ fn visualize_data(records: &[Record]) -> Result<(), Box<dyn Error>> {
         .map(|r| (r.cost, r.lead_time as f64))
         .collect();
 
+    // Scatter plot points
     chart.draw_series(data.iter().map(|&(x, y)| {
         Circle::new((x, y), 5, ShapeStyle {
             color: BLUE.to_rgba(),
@@ -94,6 +183,19 @@ fn visualize_data(records: &[Record]) -> Result<(), Box<dyn Error>> {
             stroke_width: 1,
         })
     }))?;
+
+    // Add trend line
+    let x_vals: Vec<f64> = data.iter().map(|(x, _)| *x).collect();
+    let y_vals: Vec<f64> = data.iter().map(|(_, y)| *y).collect();
+    let slope = calculate_correlation(&x_vals, &y_vals)
+        * (y_vals.iter().sum::<f64>() / x_vals.iter().sum::<f64>());
+    let intercept = y_vals.iter().sum::<f64>() / y_vals.len() as f64;
+
+    chart.draw_series(LineSeries::new(
+        data.iter()
+            .map(|&(x, _)| (x, slope * x + intercept)),
+        &RED,
+    ))?;
 
     Ok(())
 }
@@ -187,10 +289,23 @@ fn main() -> Result<(), Box<dyn Error>> {
         records.push(record);
     }
 
-    println!("Parsed Records:");
-    for record in &records {
-        println!("{:?}", record);
-    }
+    //println!("Parsed Records:");
+    //for record in &records {
+    //    println!("{:?}", record);
+    //}
+
+    // Perform Revenue Analysis
+    calculate_revenue_analysis(&records);
+
+    // Analyze supply chain efficiency
+    analyze_supply_chain_efficiency(&records);
+
+    //Identify optimization opportunities
+    identify_optimization_opportunities(&records);
+
+    //Perform predictive modeling
+    perform_predictive_modeling(&records);
+
     // Perform correlation analysis
     perform_correlation_analysis(&records);
 
@@ -202,7 +317,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     detect_outliers(&records);
 
     //Visualization
-    visualize_data(&records)?;
+    visualize_data_with_trend(&records)?;
 
     // Calculate and print average cost
     let avg_cost = calculate_average_cost(&records);
