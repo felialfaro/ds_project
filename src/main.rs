@@ -223,7 +223,7 @@ fn perform_clustering(records: &[Record], num_clusters: usize) -> Result<(), Box
             .collect(),
     )?;
 
-    // Wrap the data in a DatasetBase (features only, no targets)
+    // Wrap the data in a DatasetBase
     let dataset = DatasetBase::from(data);
 
     // Perform K-Means clustering
