@@ -5,6 +5,8 @@ use csv::{ReaderBuilder, Writer};
 use linfa::prelude::*;
 use linfa_clustering::KMeans;
 use linfa_linear::LinearRegression;
+use plotters::prelude::*;
+use std::collections::HashMap;
 
 #[derive(Debug, Deserialize)]
 struct Record {
@@ -18,6 +20,82 @@ struct Record {
     lead_time: u32,
     #[serde(rename = "Availability")]
     status: String,
+}
+
+fn calculate_correlation(x: &[f64], y: &[f64]) -> f64 {
+    let n = x.len() as f64;
+    let mean_x = x.iter().sum::<f64>() / n;
+    let mean_y = y.iter().sum::<f64>() / n;
+    let numerator: f64 = x.iter().zip(y).map(|(&xi, &yi)| (xi - mean_x) * (yi - mean_y)).sum();
+    let denominator = (x.iter().map(|&xi| (xi - mean_x).powi(2)).sum::<f64>()
+        * y.iter().map(|&yi| (yi - mean_y).powi(2)).sum::<f64>()).sqrt();
+    numerator / denominator
+}
+
+fn perform_correlation_analysis(records: &[Record]) {
+    let costs: Vec<f64> = records.iter().map(|r| r.cost).collect();
+    let lead_times: Vec<f64> = records.iter().map(|r| r.lead_time as f64).collect();
+
+    let correlation = calculate_correlation(&costs, &lead_times);
+    println!("Correlation between Cost and Lead Time: {:.2}", correlation);
+}
+
+fn feature_engineering(records: &[Record]) -> Vec<HashMap<String, f64>> {
+    records
+        .iter()
+        .map(|r| {
+            let mut features = HashMap::new();
+            features.insert("cost".to_string(), r.cost);
+            features.insert("lead_time".to_string(), r.lead_time as f64);
+            features.insert("cost_per_lead_time".to_string(), r.cost / r.lead_time as f64);
+            features
+        })
+        .collect()
+}
+
+fn detect_outliers(records: &[Record]) {
+    let costs: Vec<f64> = records.iter().map(|r| r.cost).collect();
+    let mean = costs.iter().sum::<f64>() / costs.len() as f64;
+    let std_dev = (costs.iter().map(|&x| (x - mean).powi(2)).sum::<f64>() / costs.len() as f64).sqrt();
+
+    for (i, cost) in costs.iter().enumerate() {
+        let z_score = (cost - mean) / std_dev;
+        if z_score.abs() > 3.0 {
+            println!("Record {} is an outlier with Z-score: {:.2}", i, z_score);
+        }
+    }
+}
+
+fn visualize_data(records: &[Record]) -> Result<(), Box<dyn Error>> {
+    let root = BitMapBackend::new("scatter_plot.png", (640, 480)).into_drawing_area();
+    root.fill(&WHITE)?;
+
+    let mut chart = ChartBuilder::on(&root)
+        .caption("Cost vs Lead Time", ("sans-serif", 20).into_font())
+        .margin(10)
+        .x_label_area_size(30)
+        .y_label_area_size(30)
+        .build_cartesian_2d(
+            0f64..records.iter().map(|r| r.cost).fold(0. / 0., f64::max), // Max cost
+            0f64..records.iter().map(|r| r.lead_time as f64).fold(0. / 0., f64::max), // Max lead time
+        )?;
+
+    chart.configure_mesh().draw()?;
+
+    let data: Vec<(f64, f64)> = records
+        .iter()
+        .map(|r| (r.cost, r.lead_time as f64))
+        .collect();
+
+    chart.draw_series(data.iter().map(|&(x, y)| {
+        Circle::new((x, y), 5, ShapeStyle {
+            color: BLUE.to_rgba(),
+            filled: true,
+            stroke_width: 1,
+        })
+    }))?;
+
+    Ok(())
 }
 
 fn calculate_average_cost(records: &[Record]) -> f64 {
@@ -113,6 +191,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     for record in &records {
         println!("{:?}", record);
     }
+    // Perform correlation analysis
+    perform_correlation_analysis(&records);
+
+    // Feature engineering
+    let engineered_features = feature_engineering(&records);
+    println!("Engineering Features: {:?}", engineered_features);
+
+    //Outlier detection
+    detect_outliers(&records);
+
+    //Visualization
+    visualize_data(&records)?;
 
     // Calculate and print average cost
     let avg_cost = calculate_average_cost(&records);
