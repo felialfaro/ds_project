@@ -359,6 +359,92 @@ fn main() -> Result<(), Box<dyn Error>> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    #[test]
+    fn test_calculate_revenue_analysis() {
+    let records = vec![
+        Record {
+            product: "Product A".to_string(),
+            sku: "SKU001".to_string(),
+            price: 10.0,
+            quantity_sold: 5,
+            cost: 0.0,
+            lead_time: 0,
+            shipping_time: 0,
+            shipping_cost: 0.0,
+            location: "".to_string(),
+            demographic: "".to_string(),
+            status: "".to_string(),
+        },
+        Record {
+            product: "Product B".to_string(),
+            sku: "SKU002".to_string(),
+            price: 20.0,
+            quantity_sold: 2,
+            cost: 0.0,
+            lead_time: 0,
+            shipping_time: 0,
+            shipping_cost: 0.0,
+            location: "".to_string(),
+            demographic: "".to_string(),
+            status: "".to_string(),
+        },
+    ];
+
+    let mut product_revenues: HashMap<String, f64> = HashMap::new();
+    calculate_revenue_analysis(&records);
+
+    assert_eq!(product_revenues.get("Product A"), Some(&50.0));
+    assert_eq!(product_revenues.get("Product B"), Some(&40.0));
+}
+
+    #[test]
+    fn test_calculate_correlation() {
+        let x = vec![1.0, 2.0, 3.0];
+        let y = vec![1.0, 2.0, 3.0];
+        let correlation = calculate_correlation(&x, &y);
+    assert!((correlation - 1.0).abs() < 1e-6); // Perfect positive correlation
+}
+
+    #[test]
+    fn test_detect_outliers() {
+    let records = vec![
+        Record {
+            product: "Product A".to_string(),
+            sku: "SKU001".to_string(),
+            cost: 100.0,
+            lead_time: 10,
+            status: "Available".to_string(),
+        },
+        Record {
+            product: "Product B".to_string(),
+            sku: "SKU002".to_string(),
+            cost: 1000.0,
+            lead_time: 20,
+            status: "Available".to_string(),
+        },
+    ];
+
+    let result = detect_outliers(&records);
+    assert!(result.is_ok()); // Check outliers.csv file
+}
+
+    #[test]
+    fn test_feature_engineering() {
+    let records = vec![
+        Record {
+            product: "Product A".to_string(),
+            sku: "SKU001".to_string(),
+            cost: 100.0,
+            lead_time: 10,
+            status: "Available".to_string(),
+        },
+    ];
+
+    let features = feature_engineering(&records);
+    assert_eq!(features[0]["cost_per_lead_time"], 10.0);
+}
+
 
     #[test]
     fn test_calculate_average_cost() {
