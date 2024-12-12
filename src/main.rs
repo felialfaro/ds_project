@@ -127,3 +127,76 @@ fn main() -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_calculate_average_cost() {
+        let records = vec![
+            Record {
+                product: "Product A".to_string(),
+                sku: "SKU001".to_string(),
+                cost: 100.0,
+                lead_time: 10,
+                status: "Available".to_string(),
+            },
+            Record {
+                product: "Product B".to_string(),
+                sku: "SKU002".to_string(),
+                cost: 200.0,
+                lead_time: 15,
+                status: "Unavailable".to_string(),
+            },
+        ];
+
+        let avg_cost = calculate_average_cost(&records);
+        assert_eq!(avg_cost, 150.0); // (100 + 200) / 2
+    }
+
+    #[test]
+    fn test_perform_clustering() {
+        let records = vec![
+            Record {
+                product: "Product A".to_string(),
+                sku: "SKU001".to_string(),
+                cost: 100.0,
+                lead_time: 10,
+                status: "Available".to_string(),
+            },
+            Record {
+                product: "Product B".to_string(),
+                sku: "SKU002".to_string(),
+                cost: 200.0,
+                lead_time: 20,
+                status: "Unavailable".to_string(),
+            },
+        ];
+
+        let result = perform_clustering(&records, 2);
+        assert!(result.is_ok()); // Check that clustering runs successfully
+    }
+
+    #[test]
+    fn test_perform_regression() {
+        let records = vec![
+            Record {
+                product: "Product A".to_string(),
+                sku: "SKU001".to_string(),
+                cost: 100.0,
+                lead_time: 10,
+                status: "Available".to_string(),
+            },
+            Record {
+                product: "Product B".to_string(),
+                sku: "SKU002".to_string(),
+                cost: 200.0,
+                lead_time: 20,
+                status: "Unavailable".to_string(),
+            },
+        ];
+
+        let result = perform_regression(&records);
+        assert!(result.is_ok()); // Check that regression runs successfully
+    }
+}
